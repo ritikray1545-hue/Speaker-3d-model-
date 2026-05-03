@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ULTIMATE Soundbar Builder</title>
+  <title>FINAL PRO MAX Soundbar Tool</title>
   <style>
     body { margin:0; background:#111; color:white; font-family:sans-serif; }
     #ui {
       position:absolute; top:10px; left:10px;
       background:#222; padding:15px; border-radius:10px;
-      width:200px;
+      width:220px;
     }
     input { width:100%; margin-bottom:5px; }
     button { width:100%; margin-top:5px; }
@@ -16,17 +16,21 @@
 <body>
 
 <div id="ui">
-  <h3>🔊 Ultimate Builder</h3>
+  <h3>🔥 PRO MAX Builder</h3>
+
   Length (cm)<input id="length" value="90">
   Height (cm)<input id="height" value="10">
   Depth (cm)<input id="depth" value="12">
 
+  Speakers (count)<input id="count" value="2">
   Woofer (inch)<input id="woofer" value="6">
 
-  <button onclick="update()">Update</button>
+  Port diameter (cm)<input id="port" value="5">
+
+  <button onclick="update()">Update Design</button>
   <button onclick="exportSTL()">Download STL</button>
 
-  <p id="volume"></p>
+  <p id="info"></p>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -41,39 +45,98 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 let controls = new THREE.OrbitControls(camera, renderer.domElement);
-camera.position.z = 50;
+camera.position.z = 60;
 
 let light = new THREE.PointLight(0xffffff,1);
-light.position.set(20,20,20);
+light.position.set(30,30,30);
 scene.add(light);
 
-let box;
+let objects = [];
+
+function clearScene(){
+  objects.forEach(o => scene.remove(o));
+  objects = [];
+}
 
 function update(){
-  if (box) scene.remove(box);
+  clearScene();
 
-  let l = length.value/10;
-  let h = height.value/10;
-  let d = depth.value/10;
+  let L = length.value/10;
+  let H = height.value/10;
+  let D = depth.value/10;
 
-  let geo = new THREE.BoxGeometry(l,h,d);
-  let mat = new THREE.MeshStandardMaterial({ color:0x00ffcc });
-  box = new THREE.Mesh(geo,mat);
+  // Main Box
+  let box = new THREE.Mesh(
+    new THREE.BoxGeometry(L,H,D),
+    new THREE.MeshStandardMaterial({color:0x00ffcc, transparent:true, opacity:0.7})
+  );
   scene.add(box);
+  objects.push(box);
 
-  // Woofer
+  // Speakers auto placement
+  let count = parseInt(document.getElementById("count").value);
+  for(let i=0;i<count;i++){
+    let x = -L/2 + (i+1)*(L/(count+1));
+    addSpeaker(x,0,D/2);
+  }
+
+  // Woofer center
   let size = woofer.value/10;
+  addWoofer(0,0,D/2,size);
+
+  // Port
+  let portSize = port.value/10;
+  addPort(0,-H/2+0.5,D/2,portSize);
+
+  // Divider
+  let divider = new THREE.Mesh(
+    new THREE.BoxGeometry(0.1,H,D),
+    new THREE.MeshBasicMaterial({color:0xffffff})
+  );
+  scene.add(divider);
+  objects.push(divider);
+
+  // Volume calc
+  let gross = (length.value * height.value * depth.value)/1000;
+  let net = gross * 0.8;
+
+  // Port tuning approx
+  let tuning = 50 - port.value;
+
+  document.getElementById("info").innerHTML =
+    "Gross: "+gross.toFixed(1)+"L<br>" +
+    "Net: "+net.toFixed(1)+"L<br>" +
+    "Tune: "+tuning+" Hz";
+}
+
+function addSpeaker(x,y,z){
+  let g = new THREE.CylinderGeometry(0.7,0.7,0.4,32);
+  let m = new THREE.MeshBasicMaterial({color:0x000000});
+  let s = new THREE.Mesh(g,m);
+  s.rotation.x = Math.PI/2;
+  s.position.set(x,y,z+0.2);
+  scene.add(s);
+  objects.push(s);
+}
+
+function addWoofer(x,y,z,size){
   let g = new THREE.CylinderGeometry(size,size,0.5,32);
-  let m = new THREE.MeshBasicMaterial({ color:0x111111 });
+  let m = new THREE.MeshBasicMaterial({color:0x111111});
   let w = new THREE.Mesh(g,m);
   w.rotation.x = Math.PI/2;
-  w.position.set(0,0,d/2+0.2);
+  w.position.set(x,y,z+0.2);
   scene.add(w);
+  objects.push(w);
+}
 
-  // Volume calculation
-  let volume = (length.value * height.value * depth.value)/1000;
-  document.getElementById("volume").innerHTML =
-    "Volume: " + volume.toFixed(2) + " Liters";
+function addPort(x,y,z,size){
+  let g = new THREE.CylinderGeometry(size,size,0.5,32);
+  let m = new THREE.MeshBasicMaterial({color:0x555555});
+  let p = new THREE.Mesh(g,m);
+  p.rotation.x = Math.PI/2;
+  p.position.set(x,y,z+0.2);
+  scene.add(p);
+  objects.push(p);
 }
 
 update();
@@ -84,15 +147,13 @@ function animate(){
 }
 animate();
 
-// STL Export
 function exportSTL(){
   let exporter = new THREE.STLExporter();
   let data = exporter.parse(scene);
-  let blob = new Blob([data], {type: 'text/plain'});
-
+  let blob = new Blob([data], {type:'text/plain'});
   let link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = "soundbar.stl";
+  link.download = "soundbar_pro_max.stl";
   link.click();
 }
 </script>
