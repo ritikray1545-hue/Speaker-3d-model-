@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ULTIMATE Soundbar Builder</title>
+  <style>
+    body { margin:0; background:#111; color:white; font-family:sans-serif; }
+    #ui {
+      position:absolute; top:10px; left:10px;
+      background:#222; padding:15px; border-radius:10px;
+      width:200px;
+    }
+    input { width:100%; margin-bottom:5px; }
+    button { width:100%; margin-top:5px; }
+  </style>
+</head>
+<body>
+
+<div id="ui">
+  <h3>🔊 Ultimate Builder</h3>
+  Length (cm)<input id="length" value="90">
+  Height (cm)<input id="height" value="10">
+  Depth (cm)<input id="depth" value="12">
+
+  Woofer (inch)<input id="woofer" value="6">
+
+  <button onclick="update()">Update</button>
+  <button onclick="exportSTL()">Download STL</button>
+
+  <p id="volume"></p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/exporters/STLExporter.js"></script>
+
+<script>
+let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+let renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+let controls = new THREE.OrbitControls(camera, renderer.domElement);
+camera.position.z = 50;
+
+let light = new THREE.PointLight(0xffffff,1);
+light.position.set(20,20,20);
+scene.add(light);
+
+let box;
+
+function update(){
+  if (box) scene.remove(box);
+
+  let l = length.value/10;
+  let h = height.value/10;
+  let d = depth.value/10;
+
+  let geo = new THREE.BoxGeometry(l,h,d);
+  let mat = new THREE.MeshStandardMaterial({ color:0x00ffcc });
+  box = new THREE.Mesh(geo,mat);
+  scene.add(box);
+
+  // Woofer
+  let size = woofer.value/10;
+  let g = new THREE.CylinderGeometry(size,size,0.5,32);
+  let m = new THREE.MeshBasicMaterial({ color:0x111111 });
+  let w = new THREE.Mesh(g,m);
+  w.rotation.x = Math.PI/2;
+  w.position.set(0,0,d/2+0.2);
+  scene.add(w);
+
+  // Volume calculation
+  let volume = (length.value * height.value * depth.value)/1000;
+  document.getElementById("volume").innerHTML =
+    "Volume: " + volume.toFixed(2) + " Liters";
+}
+
+update();
+
+function animate(){
+  requestAnimationFrame(animate);
+  renderer.render(scene,camera);
+}
+animate();
+
+// STL Export
+function exportSTL(){
+  let exporter = new THREE.STLExporter();
+  let data = exporter.parse(scene);
+  let blob = new Blob([data], {type: 'text/plain'});
+
+  let link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = "soundbar.stl";
+  link.click();
+}
+</script>
+
+</body>
+</html>
