@@ -1,40 +1,87 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>3D Soundbar Builder</title>
+  <title>Soundbar 3D Builder</title>
   <style>
-    body { margin: 0; }
-    canvas { display: block; }
+    body { margin:0; background:#111; color:white; font-family:sans-serif; }
+    #ui {
+      position:absolute; top:10px; left:10px;
+      background:#222; padding:15px; border-radius:10px;
+    }
+    input { width:100px; }
   </style>
 </head>
 <body>
 
+<div id="ui">
+  <h3>🔊 Soundbar Controls</h3>
+  Length: <input type="range" id="length" min="5" max="20" value="10"><br><br>
+  Height: <input type="range" id="height" min="1" max="5" value="2"><br><br>
+  Depth: <input type="range" id="depth" min="2" max="10" value="3"><br><br>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-
-const renderer = new THREE.WebGLRenderer();
+let scene = new THREE.Scene();
+let camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+let renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Soundbar box
-const geometry = new THREE.BoxGeometry(10, 2, 3);
-const material = new THREE.MeshBasicMaterial({ color: 0x222222, wireframe: false });
-const cube = new THREE.Mesh(geometry, material);
-scene.add(cube);
+camera.position.z = 20;
 
-// Camera
-camera.position.z = 15;
+let box;
 
-// Animate
+function createBox(l,h,d) {
+  if (box) scene.remove(box);
+
+  let geometry = new THREE.BoxGeometry(l,h,d);
+  let material = new THREE.MeshStandardMaterial({ color: 0x00ffcc });
+  box = new THREE.Mesh(geometry, material);
+  scene.add(box);
+
+  // Speaker circles (visual)
+  let speakerGeo = new THREE.CylinderGeometry(0.8,0.8,0.3,32);
+  let speakerMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+
+  let leftSpeaker = new THREE.Mesh(speakerGeo, speakerMat);
+  leftSpeaker.rotation.x = Math.PI/2;
+  leftSpeaker.position.set(-l/3,0,d/2+0.2);
+
+  let rightSpeaker = new THREE.Mesh(speakerGeo, speakerMat);
+  rightSpeaker.rotation.x = Math.PI/2;
+  rightSpeaker.position.set(l/3,0,d/2+0.2);
+
+  scene.add(leftSpeaker);
+  scene.add(rightSpeaker);
+}
+
+// light
+let light = new THREE.PointLight(0xffffff,1);
+light.position.set(10,10,10);
+scene.add(light);
+
+createBox(10,2,3);
+
 function animate() {
   requestAnimationFrame(animate);
-  cube.rotation.y += 0.01;
+  if (box) box.rotation.y += 0.01;
   renderer.render(scene, camera);
 }
 animate();
+
+// controls
+document.getElementById("length").oninput = update;
+document.getElementById("height").oninput = update;
+document.getElementById("depth").oninput = update;
+
+function update() {
+  let l = document.getElementById("length").value;
+  let h = document.getElementById("height").value;
+  let d = document.getElementById("depth").value;
+  createBox(l,h,d);
+}
 </script>
 
 </body>
